@@ -1,0 +1,92 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+
+function Timer (props) {
+    const Ref = useRef(null);
+    // The state for our timer
+    const [timer, setTimer] = useState();
+    const [maxDuration] = useState(parseInt(props.maxDuration));
+    // const [currentPercentage, setCurrentPercentage] = useState(100);
+    const [strokeDasharray, setStrokeDasharray] = useState(0);
+    const radius = 50;
+    const circumference = 2 * Math.PI * radius;
+    const strokeOffset = (1 / 4) * circumference;
+
+    const clearTimer = (e) => {
+        // If you adjust it you should also need to
+        // adjust the Endtime formula we are about
+        // to code next
+        const initMinutes = Math.floor( maxDuration / 60);
+        const initSeconds = (maxDuration-initMinutes*60);
+
+        setTimer(initMinutes.toString().padStart(2, '0')+":"+initSeconds.toString().padStart(2, '0'));
+        setStrokeDasharray(0);
+
+        // If you try to remove this line the
+        // updating of timer Variable will be
+        // after 1000ms or 1sec
+        if (Ref.current) clearInterval(Ref.current);
+        const id = setInterval(() => {
+            startTimer(e);
+        }, 1000)
+        Ref.current = id;
+    }
+
+    function getTimeRemaining (e) {
+        const total = Date.parse(e) - Date.parse(new Date());
+        const seconds = Math.floor((total / 1000) % 60);
+        const minutes = Math.floor((total / 1000 / 60) % 60);
+        return {
+            total, minutes, seconds
+        };
+    }
+
+    function startTimer(e) {
+        let { total, minutes, seconds }
+                    = getTimeRemaining(e);
+        if (total >= 0) {
+            setStrokeDasharray(((Math.floor(total / 1000) * 360 / maxDuration) / 360) * circumference);
+
+            // update the timer
+            // check if less than 10 then we need to
+            // add '0' at the beginning of the variable
+            setTimer(
+                (minutes > 9 ? minutes : '0' + minutes) + ':'
+                + (seconds > 9 ? seconds : '0' + seconds)
+            )
+        } else {
+            // If we are done
+            // Clear the timer
+            clearInterval(Ref.current);
+            // And execute the callback function
+            props.onEnd();
+        }
+    }
+
+    function getDeadTime(t) {
+        let deadline = new Date();
+        deadline.setSeconds(deadline.getSeconds() + parseInt(t));
+        return deadline;
+    }
+
+    useEffect(() => {
+        clearTimer(getDeadTime(maxDuration));
+    }, []);
+
+    // strokeDasharray : two values, the first sets the dash and the second sets the gap
+    return (
+        <footer className="timer">
+            {/* <button onClick={onClickReset}>Reset</button> */}
+            <svg width={200} height={200} viewBox='-20 -10 150 150'>
+                {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
+                {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}
+                {<circle id="timer-background" cx={55} cy={65} r={radius} />}
+                <circle id="timer-rotating-dot" r={10} cx={55} cy={13} />
+                <animateTransform href='#timer-rotating-dot' attributeName="transform" type='rotate' from={"0 55 65"} to={"360  55 65"} dur={maxDuration.toString()+"s"} repeatCount="1" restart="always"/>
+                <text id="timer-text" x="27" y="74" >{timer}</text>
+            </svg>
+        </footer>
+    )
+}
+
+export default Timer;

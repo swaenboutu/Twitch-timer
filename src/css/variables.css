@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@900&display=swap');
+
+:root {
+    --main-bg-color: #fff;
+    --main-text-color: #000;
+    --main-gradient-color-1: #003865;
+    --main-gradient-color-2: #0084D4;
+    
+    --timer-strock-color: #A0A0A0;
+    --timer-background-color: #000;
+  }

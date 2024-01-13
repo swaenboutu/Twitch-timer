@@ -1,8 +1,8 @@
-// import React, { useState, useEffect, useRef } from 'react';
 import { rewardsId } from './consts/variables';
+
 var timerDuration = null;
 
-function clearTimeMessage(s){
+function cleanMessage(s){
     if(s != null){
         var numberPattern = /\d+/g;
         let numbers = s.match(numberPattern);
@@ -18,15 +18,26 @@ function clearTimeMessage(s){
 function ReadTwitchMessages(props) {
     const tmi = require('tmi.js');
     const client = new tmi.Client({
-        channels: props.channel
+        channels: props.channels
     });
     client.connect().catch(console.error);
 
     client.on('message', (channel, tags, message, self) => {
         if (self) return;
-        message = clearTimeMessage(message);
         if(tags["custom-reward-id"] !== undefined && tags["custom-reward-id"] === rewardsId.RewardCustomTimerId) {
-            message = clearTimeMessage(message);
+            message = cleanMessage(message);
+            if(message != null)
+            {
+                timerDuration  = parseInt(message, 10)*60;
+                props.onTimerSet(timerDuration);
+            }
+        }
+        else if(tags["username"] !== undefined && props.channels.includes("#"+tags["username"]) && message.includes("!timer")){
+            if(message === "!timerCancel")
+            {
+                props.onTimerSet(null);
+            }
+            message = cleanMessage(message);
             if(message != null)
             {
                 timerDuration  = parseInt(message, 10)*60;

@@ -77,7 +77,7 @@ function Timer (props) {
     return (
         <footer className="timer">
             {/* <button onClick={onClickReset}>Reset</button> */}
-            <svg width={200} height={200} viewBox='-20 -10 150 150'>
+            <svg width={900} height={900} viewBox='-20 -10 150 150'>
                 {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
                 {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}
                 {<circle id="timer-background" cx={55} cy={65} r={radius} />}

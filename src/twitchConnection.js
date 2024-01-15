@@ -1,4 +1,5 @@
 import { rewardsId } from './consts/variables';
+import { useState, useEffect } from 'react';
 
 var timerDuration = null;
 
@@ -17,11 +18,18 @@ function cleanMessage(s){
 
 function ReadTwitchMessages(props) {
     const tmi = require('tmi.js');
+    const [connected, setConnected] = useState(false);
+
     const client = new tmi.Client({
         channels: props.channels
     });
-    client.connect().catch(console.error);
 
+    if(connected === false)
+    {
+        client.connect().catch(console.error);
+        setConnected(true);
+    }
+    
     client.on('message', (channel, tags, message, self) => {
         if (self) return;
         if(tags["custom-reward-id"] !== undefined && tags["custom-reward-id"] === rewardsId.RewardCustomTimerId) {

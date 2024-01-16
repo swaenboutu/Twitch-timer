@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 
 function Timer (props) {
@@ -6,13 +6,12 @@ function Timer (props) {
     // The state for our timer
     const [timer, setTimer] = useState();
     const [maxDuration] = useState(parseInt(props.maxDuration));
-    // const [currentPercentage, setCurrentPercentage] = useState(100);
     const [strokeDasharray, setStrokeDasharray] = useState(0);
     const radius = 50;
     const circumference = 2 * Math.PI * radius;
     const strokeOffset = (1 / 4) * circumference;
 
-    const clearTimer = (e) => {
+    const clearTimer = useCallback((e) => {
         // If you adjust it you should also need to
         // adjust the Endtime formula we are about
         // to code next
@@ -28,9 +27,10 @@ function Timer (props) {
         if (Ref.current) clearInterval(Ref.current);
         const id = setInterval(() => {
             startTimer(e);
-        }, 1000)
+        }, 1000);
         Ref.current = id;
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     function getTimeRemaining (e) {
         const total = Date.parse(e) - Date.parse(new Date());
@@ -53,7 +53,7 @@ function Timer (props) {
             setTimer(
                 (minutes > 9 ? minutes : '0' + minutes) + ':'
                 + (seconds > 9 ? seconds : '0' + seconds)
-            )
+            );
         } else {
             // If we are done
             // Clear the timer
@@ -71,12 +71,11 @@ function Timer (props) {
 
     useEffect(() => {
         clearTimer(getDeadTime(maxDuration));
-    }, []);
+    }, [clearTimer, maxDuration]);
 
     // strokeDasharray : two values, the first sets the dash and the second sets the gap
     return (
         <footer className="timer">
-            {/* <button onClick={onClickReset}>Reset</button> */}
             <svg width={900} height={900} viewBox='-20 -10 150 150'>
                 {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
                 {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}

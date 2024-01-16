@@ -1,9 +1,47 @@
-import { rewardsId } from './consts/variables';
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
+import {channels,  rewardsId } from './consts/variables';
 
 var timerDuration = null;
+const tmi = require('tmi.js');
 
-function cleanMessage(s){
+function ReadTwitchMessages({onTimerSet}) {
+    const [isConnected, setIsConnected] = useState(false);
+    const client = useMemo(() => new tmi.Client({
+        channels: channels
+    }), []);
+
+    if(isConnected === false)
+    {
+        client.connect().catch(console.error);
+        setIsConnected(true);
+    }
+    
+    client.on('message', (channel, tags, message, self) => {
+        if (self) return;
+        if(tags["custom-reward-id"] !== undefined && tags["custom-reward-id"] === rewardsId.RewardCustomTimerId) {
+            message = cleanMessage(message);
+            if(message != null)
+            {
+                timerDuration  = parseInt(message, 10)*60;
+                onTimerSet(timerDuration);
+            }
+        }
+        else if(tags["username"] !== undefined && channels.includes(tags["username"]) && message.includes("!timer")){
+            if(message === "!timerCancel")
+            {
+                onTimerSet(null);
+            }
+            message = cleanMessage(message);
+            if(message != null)
+            {
+                timerDuration  = parseInt(message, 10)*60;
+                onTimerSet(timerDuration);
+            }
+        }
+    }); 
+}
+
+function cleanMessage(s) {
     if(s != null){
         var numberPattern = /\d+/g;
         let numbers = s.match(numberPattern);
@@ -14,45 +52,6 @@ function cleanMessage(s){
         return null;
     }
     return null;
-}
-
-function ReadTwitchMessages(props) {
-    const tmi = require('tmi.js');
-    const [connected, setConnected] = useState(false);
-
-    const client = new tmi.Client({
-        channels: props.channels
-    });
-
-    if(connected === false)
-    {
-        client.connect().catch(console.error);
-        setConnected(true);
-    }
-    
-    client.on('message', (channel, tags, message, self) => {
-        if (self) return;
-        if(tags["custom-reward-id"] !== undefined && tags["custom-reward-id"] === rewardsId.RewardCustomTimerId) {
-            message = cleanMessage(message);
-            if(message != null)
-            {
-                timerDuration  = parseInt(message, 10)*60;
-                props.onTimerSet(timerDuration);
-            }
-        }
-        else if(tags["username"] !== undefined && props.channels.includes("#"+tags["username"]) && message.includes("!timer")){
-            if(message === "!timerCancel")
-            {
-                props.onTimerSet(null);
-            }
-            message = cleanMessage(message);
-            if(message != null)
-            {
-                timerDuration  = parseInt(message, 10)*60;
-                props.onTimerSet(timerDuration);
-            }
-        }
-    }); 
 }
 
 export {ReadTwitchMessages};

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import {channels} from './consts/variables';
 import Timer from './timer';
 import {ReadTwitchMessages} from './twitchConnection';
 import useSound from 'use-sound'
@@ -16,11 +15,8 @@ export default function Main(){
 
   return (
       <>
-        <ReadTwitchMessages channels={channels} onTimerSet={setTimer} />
-        {timer != null ?
-        <>
-          <Timer maxDuration={timer} onEnd={timerEnd} />
-        </>:null}
+        <ReadTwitchMessages onTimerSet={setTimer} />
+        {timer && <Timer maxDuration={timer} onEnd={timerEnd} /> }
       </>
   );
 }

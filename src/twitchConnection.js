@@ -26,7 +26,7 @@ function ReadTwitchMessages({onTimerSet}) {
                 onTimerSet(timerDuration);
             }
         }
-        else if(tags["username"] !== undefined && channels.includes(tags["username"]) && message.includes("!timer")){
+        else if(tags["username"] !== undefined && channels.includes("#"+tags["username"]) && message.includes("!timer")){
             if(message === "!timerCancel")
             {
                 onTimerSet(null);

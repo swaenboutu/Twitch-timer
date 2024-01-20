@@ -75,7 +75,7 @@ function Timer (props) {
 
     // strokeDasharray : two values, the first sets the dash and the second sets the gap
     return (
-        <footer className="timer">
+        <div className="timer">
             <svg width={900} height={900} viewBox='-20 -10 150 150'>
                 {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
                 {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}
@@ -84,7 +84,7 @@ function Timer (props) {
                 <animateTransform href='#timer-rotating-dot' attributeName="transform" type='rotate' from={"0 55 65"} to={"360  55 65"} dur={maxDuration.toString()+"s"} repeatCount="1" restart="always"/>
                 <text id="timer-text" x="27" y="74" >{timer}</text>
             </svg>
-        </footer>
+        </div>
     )
 }
 

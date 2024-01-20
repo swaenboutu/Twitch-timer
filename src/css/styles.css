@@ -2,53 +2,6 @@
 @import url(timer.css);
 
 body{
-  font-family: 'Roboto slab', sans-serif;
+  font-family: 'Koulen', sans-serif;
   background-color:var(--main-bg-color);
-  display: grid;
-  grid-gap: 10px;
-  grid-template-columns: 1fr;
-  grid-template-areas: "main" "footer";
-  grid-template-rows: 1fr 80px;
-  height: 100%;
-  margin: 0;
-}
-
-#root {
-  padding: 20px;
-  min-height: 100%;
-  margin: 0 auto -50px;
-}
-
-#title {
-  color: var(--main-text-color);
-  text-align: center;
-  font-family: 'Roboto', sans-serif;
-  text-shadow: 4px 4px 4px rgba(0, 0, 0, 0.25);
-}
-
-#title h1{
-  font-size: 120px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: normal;
-  margin:0%;
-  padding: 0%;
-}
-
-.subtitle {
-  color: var(--main-text-color);
-  text-align: center;
-  font-family: 'Roboto', sans-serif;
-  font-size: 80px;
-  font-style: normal;
-  font-weight: 200;
-  line-height: normal;
-  margin:0;
-  padding: 0%;
-}
-
-footer {
-  grid-area: footer;
-  margin-top: auto;
-  height: 50px;
 }

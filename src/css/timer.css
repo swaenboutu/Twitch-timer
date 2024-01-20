@@ -5,7 +5,6 @@
   }
   
   #timer-text {
-    font-family: 'Koulen', sans-serif;
     font-size: x-large;
     text-align:center;
   }
@@ -15,7 +14,7 @@
   }
   
   #timer-text {
-    fill: #fff;
+    fill: var(--main-bg-color);
   }
 
   #timer-rotating-border {

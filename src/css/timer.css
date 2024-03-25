@@ -1,30 +1,98 @@
 .timer {
-    margin-left:auto;
-    margin-right: auto;
-    text-align: center;
-  }
-  
-  #timer-text {
-    font-size: x-large;
-    text-align:center;
-  }
-  
-  #timer-rotating-dot {
-    fill: var(--main-gradient-color-1);
-  }
-  
-  #timer-text {
-    fill: var(--main-bg-color);
-  }
+  margin-left:auto;
+  margin-right: auto;
+}
 
-  #timer-rotating-border {
-    stroke: var(--main-gradient-color-1);
-  }
+#timer-rotating-dot {
+  fill: var(--main-gradient-color-1);
+}
 
-  #timer-border {
-    stroke: var(--timer-strock-color);
-  }
+#timer-rotating-border {
+  stroke: var(--main-gradient-color-1);
+}
 
-  #timer-background {
-    fill: var(--timer-background-color);
+#timer-border {
+  stroke: var(--timer-strock-color);
+}
+
+#timer-background {
+  fill: var(--timer-background-color);
+}
+
+#timer-text {
+  font-size: 9em;
+  font-weight: bold;
+  color: var(--main-bg-color);
+  position:absolute;
+  top : 375px;
+  left: 275px;
+  text-shadow: 0 0 3em var(--timer-text-shadow-color);
+}
+
+.too-late{
+  animation: too-late 1s infinite;
+  color: var(--timer-end-color) !important;
+  text-shadow: 0 0 4em var(--timer-end-color) !important;
+}
+
+.mega-shake{
+  animation: mega-shaking 1s infinite;
+}
+
+.shake{
+  animation: shaking 1s infinite;
+}
+
+.pulse {
+  animation: pulse 4s infinite;
+}
+
+
+/* Animations */
+@keyframes pulse {
+  0% { transform: scale(0.95); }
+  70% { transform: scale(1); }
+  100% { transform: scale(0.95); }
+}
+
+@keyframes shaking {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+@keyframes mega-shaking {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-4px, -5px) rotate(-5deg); }
+  20% { transform: translate(-5px, 0px) rotate(5deg); }
+  30% { transform: translate(6px, 5px) rotate(0deg); }
+  40% { transform: translate(4px, -4px) rotate(5deg); }
+  50% { transform: translate(-4px, 5px) rotate(-5deg); }
+  60% { transform: translate(-6px, 4px) rotate(0deg); }
+  70% { transform: translate(6px, 4px) rotate(-5deg); }
+  80% { transform: translate(-4px, -4px) rotate(5deg); }
+  90% { transform: translate(4px, 5px) rotate(0deg); }
+  100% { transform: translate(4px, -5px) rotate(-5deg); }
+}
+
+@keyframes too-late {
+  0% { transform: translate(1px, 1px) rotate(0deg) scale(0.95); }
+  10% { transform: translate(-4px, -5px) rotate(-5deg) scale(1); }
+  20% { transform: translate(-5px, 0px) rotate(5deg) scale(1.1); }
+  30% { transform: translate(6px, 5px) rotate(0deg) scale(1.3); }
+  40% { transform: translate(4px, -4px) rotate(5deg) scale(1.5); }
+  50% { transform: translate(-4px, 5px) rotate(-5deg) scale(2); }
+  60% { transform: translate(-6px, 4px) rotate(0deg) scale(1.5); }
+  70% { transform: translate(6px, 4px) rotate(-5deg)  scale(1.3); }
+  80% { transform: translate(-4px, -4px) rotate(5deg) scale(1.1); }
+  90% { transform: translate(4px, 5px) rotate(0deg) scale(1); }
+  100% { transform: translate(4px, -5px) rotate(-5deg) scale(0.95); }
   }

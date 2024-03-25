@@ -9,7 +9,6 @@ export default function Main(){
   const [playSound] = useSound(endSound);
 
   function timerEnd(timerDuration){
-    setTimer(timerDuration);
     playSound();
   }
 

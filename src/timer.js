@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 function Timer (props) {
     const Ref = useRef(null);
     // The state for our timer  
-    const [timer, setTimer] = useState();
+    const [timer, setTimer] = useState(null);
     const [maxDuration] = useState(parseInt(props.maxDuration));
     const [strokeDasharray, setStrokeDasharray] = useState(0);
     const [timerClassName, setTimerClassName] = useState("pulse")
@@ -86,18 +86,24 @@ function Timer (props) {
 
     // strokeDasharray : two values, the first sets the dash and the second sets the gap
     return (
-        <div className="timer almost-end">
-            <div id="timer-text" className={timerClassName}>{timer}</div>
-            <span>
-                <svg width={900} height={900} viewBox='-20 -10 150 150'>
-                    {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
-                    {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}
-                    {<circle id="timer-background" cx={55} cy={65} r={radius} />}
-                    <circle id="timer-rotating-dot" r={10} cx={55} cy={13} />
-                    <animateTransform href='#timer-rotating-dot' attributeName="transform" type='rotate' from={"0 55 65"} to={"360  55 65"} dur={maxDuration.toString()+"s"} repeatCount="1" restart="always"/>
-                </svg>
-            </span>
-        </div>
+        <>
+        {timer !== null ?
+        <>
+            <div className="timer almost-end">
+                <div id="timer-text" className={timerClassName}>{timer}</div>
+                <span>
+                    <svg width={900} height={900} viewBox='-20 -10 150 150'>
+                        {<circle id="timer-rotating-border" cx={55} cy={65} r={radius} fill="transparent" strokeWidth={10} />}
+                        {<circle id="timer-border" cx={55} cy={65} r={radius} fill="transparent"  strokeWidth={10} strokeDasharray={[circumference - strokeDasharray, strokeDasharray]} strokeDashoffset={strokeOffset} />}
+                        {<circle id="timer-background" cx={55} cy={65} r={radius} />}
+                        <circle id="timer-rotating-dot" r={10} cx={55} cy={13} />
+                        <animateTransform href='#timer-rotating-dot' attributeName="transform" type='rotate' from={"0 55 65"} to={"360  55 65"} dur={maxDuration.toString()+"s"} repeatCount="1" restart="always"/>
+                    </svg>
+                </span>
+            </div>
+        </>
+        : null }
+        </>
     )
 }
 

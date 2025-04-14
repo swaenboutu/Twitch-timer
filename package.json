@@ -11,7 +11,10 @@
     "react-scripts": "^5.0.1",
     "tmi.js": "^1.8.5",
     "use-sound": "^4.0.1",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "webpack": "^5.99.5",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
   },
   "scripts": {
     "start": "react-scripts start",

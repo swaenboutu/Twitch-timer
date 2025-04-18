@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 // Importer la configuration centralisée
 import config from './config';
 // Supprimer l'import des anciennes constantes
@@ -59,13 +59,19 @@ function ReadTwitchMessages({onTimerSet}) {
     // Ajouter une dépendance au tableau de dépendances de useMemo si nécessaire
     // Si config peut changer, il faudrait le gérer, mais ici on suppose qu'il est constant après le démarrage.
 
-    // Retourner une fonction de nettoyage pour déconnecter le client TMI
-    // lorsque le composant est démonté.
-    return () => {
-        if (client && client.readyState() === "OPEN") {
-            client.disconnect();
-        }
-    };
+    // Ajout d'une fonction de nettoyage pour le client TMI
+    useEffect(() => {
+        // La connexion se fait déjà via le if(isConnected === false)
+        // Retourne la fonction de nettoyage
+        return () => {
+            if (client && client.readyState() === "OPEN") {
+                client.disconnect().catch(console.error); // Ajout de catch
+            }
+        };
+    }, [client]); // Dépendance au client
+
+    // Un composant React doit retourner un élément renderable ou null
+    return null;
 }
 
 function cleanMessage(s) {

@@ -3,77 +3,54 @@ import { useMemo, useState, useEffect } from 'react';
 import config from './config';
 // Supprimer l'import des anciennes constantes
 // import {channels,  rewardsId } from './consts/variables';
+import * as tmi from 'tmi.js';
 
 var timerDuration = null; // Cette variable globale pourrait être gérée différemment (ex: état React dans App.js)
-const tmi = require('tmi.js');
 
-function ReadTwitchMessages({onTimerSet}) {
-    const [isConnected, setIsConnected] = useState(false);
-    const client = useMemo(() => new tmi.Client({
-        // Utiliser les canaux depuis la configuration
-        channels: config.twitch.channels,
-        // Utiliser les options de connexion depuis la configuration
-        connection: config.twitch.connection
-    }), []);
+// Extracted message handling logic
+function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
+    if (self) return;
 
-    if(isConnected === false)
-    {
-        client.connect().catch(console.error);
-        setIsConnected(true);
+    let durationSeconds = null;
+    let timerUpdateNeeded = false;
+
+    // Reward Check
+    // Utiliser l'ID de récompense depuis la configuration
+    if (tags["custom-reward-id"] === currentConfig.twitch.rewards.customTimer.id) {
+        const cleanedMessage = cleanMessage(message);
+        if (cleanedMessage != null) {
+            durationSeconds = parseInt(cleanedMessage, 10) * 60;
+            timerUpdateNeeded = true;
+        }
+    }
+    // Command Check (!timer or !timerCancel)
+    // Utiliser les canaux depuis la configuration pour vérifier l'auteur et normaliser en minuscules
+    else if (message.toLowerCase().startsWith("!timer") 
+             && tags["username"] 
+             && currentConfig.twitch.channels.some(channel => channel.toLowerCase() === "#" + tags["username"].toLowerCase())) {
+        if (message.toLowerCase() === "!timercancel") {
+            durationSeconds = null; // Explicitly set to null for cancellation
+            timerUpdateNeeded = true;
+        } else {
+            const cleanedMessage = cleanMessage(message);
+            if (cleanedMessage != null) {
+                durationSeconds = parseInt(cleanedMessage, 10) * 60;
+                timerUpdateNeeded = true;
+            }
+        }
     }
 
-    client.on('message', (channel, tags, message, self) => {
-        if (self) return;
-
-        // Utiliser l'ID de récompense depuis la configuration
-        if(tags["custom-reward-id"] !== undefined && tags["custom-reward-id"] === config.twitch.rewards.customTimer.id) {
-            message = cleanMessage(message);
-            if(message != null)
-            {
-                let durationSeconds = parseInt(message, 10) * 60;
-                // Appliquer les limites min/max de la configuration
-                durationSeconds = Math.min(Math.max(durationSeconds, config.timer.minDuration), config.timer.maxDuration);
-                timerDuration = durationSeconds; // Toujours la variable globale
-                onTimerSet(timerDuration);
-            }
+    // If a timer update is triggered, process and call onTimerSet
+    if (timerUpdateNeeded) {
+        if (durationSeconds !== null) {
+            // Appliquer les limites min/max de la configuration seulement si duration n'est pas null (i.e., pas cancel)
+            durationSeconds = Math.min(Math.max(durationSeconds, currentConfig.timer.minDuration), currentConfig.timer.maxDuration);
         }
-        // Utiliser les canaux depuis la configuration pour vérifier l'auteur et normaliser en minuscules
-        else if(tags["username"] !== undefined && config.twitch.channels.includes("#"+tags["username"].toLowerCase()) && message.toLowerCase().startsWith("!timer")) {
-            if(message.toLowerCase() === "!timercancel")
-            {
-                onTimerSet(null);
-            }
-            else {
-                message = cleanMessage(message);
-                if(message != null)
-                {
-                    let durationSeconds = parseInt(message, 10) * 60;
-                     // Appliquer les limites min/max de la configuration
-                    durationSeconds = Math.min(Math.max(durationSeconds, config.timer.minDuration), config.timer.maxDuration);
-                    timerDuration = durationSeconds; // Toujours la variable globale
-                    onTimerSet(timerDuration);
-                }
-            }
-        }
-    });
-    // Ajouter une dépendance au tableau de dépendances de useMemo si nécessaire
-    // Si config peut changer, il faudrait le gérer, mais ici on suppose qu'il est constant après le démarrage.
-
-    // Ajout d'une fonction de nettoyage pour le client TMI
-    useEffect(() => {
-        // La connexion se fait déjà via le if(isConnected === false)
-        // Retourne la fonction de nettoyage
-        return () => {
-            if (client && client.readyState() === "OPEN") {
-                client.disconnect().catch(console.error); // Ajout de catch
-            }
-        };
-    }, [client]); // Dépendance au client
-
-    // Un composant React doit retourner un élément renderable ou null
-    return null;
+        onTimerSet(durationSeconds);
+    }
 }
 
+// Existing cleanMessage function (remains the same)
 function cleanMessage(s) {
     if(s != null){
         var numberPattern = /\d+/g;
@@ -88,4 +65,63 @@ function cleanMessage(s) {
     return null;
 }
 
-export {ReadTwitchMessages};
+// Updated React Component
+function ReadTwitchMessages({ onTimerSet }) {
+    const [isConnected, setIsConnected] = useState(false); // State remains for potential UI feedback
+    const client = useMemo(() => new tmi.Client({
+        // Utiliser les canaux depuis la configuration
+        channels: config.twitch.channels,
+        // Utiliser les options de connexion depuis la configuration
+        connection: config.twitch.connection
+    }), []); // Empty dependency array ensures client is created only once
+
+    // Effect for connection, message handling, and cleanup
+    useEffect(() => {
+        let isMounted = true; // Flag to prevent operations after unmount
+
+        console.log("Attempting to connect Twitch client...");
+        client.connect()
+            .then(() => {
+                if (isMounted) setIsConnected(true);
+                console.log("Twitch client connected successfully.");
+            })
+            .catch(error => {
+                console.error("Failed to connect Twitch client:", error);
+                // Optionally set an error state here if needed for UI feedback
+            });
+
+        // Define the message handler using the extracted logic
+        const messageHandler = (channel, tags, message, self) => {
+            // Pass the current config from the outer scope
+            handleTwitchMessage(tags, message, self, onTimerSet, config);
+        };
+
+        // Register the message handler
+        client.on('message', messageHandler);
+        console.log("Twitch message listener attached.");
+
+        // Cleanup function: runs on component unmount or before effect re-runs
+        return () => {
+            isMounted = false; // Mark as unmounted
+            console.log("Cleaning up Twitch client connection...");
+            // Remove the specific listener to prevent memory leaks
+            client.removeListener('message', messageHandler);
+            console.log("Twitch message listener removed.");
+
+            // Disconnect if the client is currently open
+            if (client.readyState() === "OPEN") {
+                console.log("Disconnecting Twitch client...");
+                client.disconnect()
+                    .then(() => console.log("Twitch client disconnected successfully."))
+                    .catch(error => console.error("Error disconnecting Twitch client:", error));
+            } else {
+                console.log(`Twitch client not disconnected (state: ${client.readyState()}).`);
+            }
+        };
+    }, [client, onTimerSet]); // Dependencies: Re-run effect if client instance or onTimerSet changes
+
+    // This component is non-visual, so it returns null
+    return null;
+}
+
+export { ReadTwitchMessages, handleTwitchMessage, cleanMessage }; // Export new functions

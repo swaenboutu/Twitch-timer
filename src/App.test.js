@@ -1,11 +1,30 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
-test('renders without crashing', () => {
-  render(<App />);
-  // On peut ajouter une assertion plus spécifique plus tard si nécessaire
-  // Par exemple, vérifier la présence d'un élément clé
-  // const linkElement = screen.getByText(/learn react/i);
-  // expect(linkElement).toBeInTheDocument();
-}); 
+// Mock TwitchAuth functions and localStorage if needed for more specific tests
+// jest.mock('./TwitchAuth', () => ({
+//   ...jest.requireActual('./TwitchAuth'), // Keep original functions unless mocked
+//   getStoredTwitchToken: jest.fn(() => null), // Default mock: not logged in
+//   clearStoredTwitchToken: jest.fn(),
+// }));
+
+test('renders without crashing and shows login button initially', () => {
+  // Wrap App component with MemoryRouter
+  render(
+    <MemoryRouter initialEntries={['/']}> {/* Start at the root path */} 
+      <App />
+    </MemoryRouter>
+  );
+  
+  // Check for a key element, like the main heading or the login button
+  expect(screen.getByRole('heading', { name: /twitch timer app/i })).toBeInTheDocument();
+  // Initially, the user should not be logged in, so the Login button should be visible
+  expect(screen.getByRole('button', { name: /connect with twitch/i })).toBeInTheDocument();
+});
+
+// Add more tests here, for example:
+// - Test rendering when logged in (mock getStoredTwitchToken to return a token)
+// - Test navigation/rendering of the callback route (using initialEntries in MemoryRouter)
+// - Test logout functionality 

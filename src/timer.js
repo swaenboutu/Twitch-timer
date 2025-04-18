@@ -25,7 +25,7 @@ function Timer (props) {
         // If you try to remove this line the
         // updating of timer Variable will be
         // after 1000ms or 1sec
-        if (Ref.current) clearInterval(Ref.current);
+        if (Ref.current) window.clearInterval(Ref.current);
         const id = setInterval(() => {
             startTimer(e);
         }, 1000);
@@ -64,7 +64,7 @@ function Timer (props) {
         } else {
             // If we are done
             // Clear the timer
-            clearInterval(Ref.current);
+            window.clearInterval(Ref.current);
 
             // add the animation
             setTimerClassName("too-late");
@@ -82,6 +82,12 @@ function Timer (props) {
 
     useEffect(() => {
         clearTimer(getDeadTime(maxDuration));
+        // Retourne une fonction de nettoyage qui sera appelée au démontage
+        return () => {
+            if (Ref.current) {
+                window.clearInterval(Ref.current);
+            }
+        };
     }, [clearTimer, maxDuration]);
 
     // strokeDasharray : two values, the first sets the dash and the second sets the gap

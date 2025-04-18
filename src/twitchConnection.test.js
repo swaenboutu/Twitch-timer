@@ -4,6 +4,29 @@
 import { handleTwitchMessage, cleanMessage } from './twitchConnection';
 // Import the config for testing different scenarios
 import config from './config';
+// Mock the imported function from TwitchAuth
+import { getSelectedRewardId } from './TwitchAuth';
+
+// Mock the entire TwitchAuth module
+jest.mock('./TwitchAuth', () => ({
+    getSelectedRewardId: jest.fn(), // Mock the specific function we need
+}));
+
+// Mock the config object (provide necessary values)
+const mockConfig = {
+    twitch: {
+        channels: ['#testuser'],
+        rewards: {
+            customTimer: { 
+                // id: 'old-config-reward-id' // No longer directly used by handleTwitchMessage for checking
+            }
+        }
+    },
+    timer: {
+        minDuration: 60,   // 1 minute
+        maxDuration: 3600, // 1 hour
+    },
+};
 
 // Mock the config for consistent testing if necessary, or use the real one
 // jest.mock('./config', () => ({ /* mock config structure */ }));
@@ -21,6 +44,8 @@ describe('handleTwitchMessage Function', () => {
     mockOnTimerSet = jest.fn();
     // No need to mock tmi.js client or React rendering anymore
     // No need to manage process.env variables if config is directly used/mocked
+    // Reset the mock implementation for getSelectedRewardId
+    getSelectedRewardId.mockReset();
   });
 
   // --- Tests for handleTwitchMessage ---
@@ -104,6 +129,116 @@ describe('handleTwitchMessage Function', () => {
     const message = '!timer 5';
     handleTwitchMessage(tags, message, true, mockOnTimerSet, testConfig); // self = true
     expect(mockOnTimerSet).not.toHaveBeenCalled();
+  });
+
+  test('should set timer when selected reward ID matches and message is valid', () => {
+    const testRewardId = 'reward-123';
+    getSelectedRewardId.mockReturnValue(testRewardId);
+    const tags = { 'custom-reward-id': testRewardId };
+    const message = 'Set timer for 10 minutes';
+    
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+    
+    expect(mockOnTimerSet).toHaveBeenCalledTimes(1);
+    // 10 minutes * 60 seconds = 600 seconds
+    expect(mockOnTimerSet).toHaveBeenCalledWith(600);
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+
+  test('should NOT set timer if message tag reward ID does not match selected ID', () => {
+    const selectedId = 'reward-123';
+    const messageTagId = 'reward-456';
+    getSelectedRewardId.mockReturnValue(selectedId);
+    const tags = { 'custom-reward-id': messageTagId };
+    const message = '5 minutes timer';
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).not.toHaveBeenCalled();
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+
+  test('should NOT set timer if no reward ID is selected (localStorage empty)', () => {
+    getSelectedRewardId.mockReturnValue(null);
+    const tags = { 'custom-reward-id': 'reward-123' };
+    const message = '5 minutes timer';
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).not.toHaveBeenCalled();
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+  
+  test('should NOT set timer if reward matches but message contains no number', () => {
+    const testRewardId = 'reward-123';
+    getSelectedRewardId.mockReturnValue(testRewardId);
+    const tags = { 'custom-reward-id': testRewardId };
+    const message = 'Use this reward!'; // No number
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).not.toHaveBeenCalled();
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+
+  test('should set timer using !timer command from authorized user', () => {
+    getSelectedRewardId.mockReturnValue('some-other-reward'); // Should still work even if a reward is selected
+    const tags = { username: 'testuser' }; // Matches mockConfig.twitch.channels
+    const message = '!timer 15';
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).toHaveBeenCalledTimes(1);
+    // 15 minutes * 60 seconds = 900 seconds
+    expect(mockOnTimerSet).toHaveBeenCalledWith(900);
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1); // Always checks reward ID first
+  });
+
+  test('should cancel timer using !timercancel command from authorized user', () => {
+    getSelectedRewardId.mockReturnValue(null); 
+    const tags = { username: 'testuser' };
+    const message = '!timercancel';
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).toHaveBeenCalledTimes(1);
+    expect(mockOnTimerSet).toHaveBeenCalledWith(null);
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+
+  test('should NOT set timer using !timer command from unauthorized user', () => {
+    getSelectedRewardId.mockReturnValue(null);
+    const tags = { username: 'anotheruser' }; // Does NOT match mockConfig.twitch.channels
+    const message = '!timer 5';
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).not.toHaveBeenCalled();
+    expect(getSelectedRewardId).toHaveBeenCalledTimes(1);
+  });
+
+  test('should apply min duration limit', () => {
+    const testRewardId = 'reward-min';
+    getSelectedRewardId.mockReturnValue(testRewardId);
+    const tags = { 'custom-reward-id': testRewardId };
+    const message = '0.5'; // 0.5 * 60 = 30 seconds (below minDuration)
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).toHaveBeenCalledTimes(1);
+    expect(mockOnTimerSet).toHaveBeenCalledWith(testConfig.timer.minDuration); // Should be clamped to 60
+  });
+
+  test('should apply max duration limit', () => {
+    const testRewardId = 'reward-max';
+    getSelectedRewardId.mockReturnValue(testRewardId);
+    const tags = { 'custom-reward-id': testRewardId };
+    const message = '70'; // 70 * 60 = 4200 seconds (above maxDuration)
+
+    handleTwitchMessage(tags, message, false, mockOnTimerSet, testConfig);
+
+    expect(mockOnTimerSet).toHaveBeenCalledTimes(1);
+    expect(mockOnTimerSet).toHaveBeenCalledWith(testConfig.timer.maxDuration); // Should be clamped to 3600
   });
 
 });

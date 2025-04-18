@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 // Importer la configuration centralisée
 import config from './config';
+// Import the function to get the selected reward ID
+import { getSelectedRewardId } from './TwitchAuth'; 
 // Supprimer l'import des anciennes constantes
 // import {channels,  rewardsId } from './consts/variables';
 import * as tmi from 'tmi.js';
@@ -11,23 +13,35 @@ var timerDuration = null; // Cette variable globale pourrait être gérée diff�
 function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
     if (self) return;
 
+    // Get the currently selected reward ID from localStorage
+    const selectedRewardId = getSelectedRewardId();
+    // console.log("Checking message against selected reward ID:", selectedRewardId); // Optional: Debug log
+
     let durationSeconds = null;
     let timerUpdateNeeded = false;
 
-    // Reward Check
-    // Utiliser l'ID de récompense depuis la configuration
-    if (tags["custom-reward-id"] === currentConfig.twitch.rewards.customTimer.id) {
+    // Reward Check: Use the dynamically selected ID
+    // Check if a reward is selected AND if the message tag matches it
+    if (selectedRewardId && tags["custom-reward-id"] === selectedRewardId) {
+        console.log(`[handleTwitchMessage] Received matching reward redemption: ${selectedRewardId}`);
         const cleanedMessage = cleanMessage(message);
         if (cleanedMessage != null) {
             durationSeconds = parseInt(cleanedMessage, 10) * 60;
+            console.log(`[handleTwitchMessage] Parsed duration: ${durationSeconds / 60} minutes`);
             timerUpdateNeeded = true;
+        } else {
+            // Handle rewards that might not require user input? 
+            // Or log that the message format was wrong for the timer reward.
+            console.warn("[handleTwitchMessage] Reward redeemed, but message did not contain a parseable number.");
+            // Maybe set a default duration? Or ignore? For now, ignore.
         }
     }
     // Command Check (!timer or !timerCancel)
-    // Utiliser les canaux depuis la configuration pour vérifier l'auteur et normaliser en minuscules
-    else if (message.toLowerCase().startsWith("!timer") 
-             && tags["username"] 
-             && currentConfig.twitch.channels.some(channel => channel.toLowerCase() === "#" + tags["username"].toLowerCase())) {
+    // Keep this logic if commands should still work independently
+    else if (message.toLowerCase().startsWith("!timer") && 
+             tags["username"] && 
+             currentConfig.twitch.channels.some(channel => channel.toLowerCase() === "#" + tags["username"].toLowerCase())) {
+        console.log(`[handleTwitchMessage] Received command: ${message}`);
         if (message.toLowerCase() === "!timercancel") {
             durationSeconds = null; // Explicitly set to null for cancellation
             timerUpdateNeeded = true;
@@ -35,6 +49,7 @@ function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
             const cleanedMessage = cleanMessage(message);
             if (cleanedMessage != null) {
                 durationSeconds = parseInt(cleanedMessage, 10) * 60;
+                 console.log(`[handleTwitchMessage] Parsed duration from command: ${durationSeconds / 60} minutes`);
                 timerUpdateNeeded = true;
             }
         }
@@ -43,8 +58,11 @@ function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
     // If a timer update is triggered, process and call onTimerSet
     if (timerUpdateNeeded) {
         if (durationSeconds !== null) {
-            // Appliquer les limites min/max de la configuration seulement si duration n'est pas null (i.e., pas cancel)
-            durationSeconds = Math.min(Math.max(durationSeconds, currentConfig.timer.minDuration), currentConfig.timer.maxDuration);
+            // Apply min/max limits from config
+            const min = currentConfig.timer.minDuration;
+            const max = currentConfig.timer.maxDuration;
+            durationSeconds = Math.min(Math.max(durationSeconds, min), max);
+             console.log(`[handleTwitchMessage] Applying limits (${min}-${max}s). Final duration: ${durationSeconds}s`);
         }
         onTimerSet(durationSeconds);
     }

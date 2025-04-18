@@ -1,86 +1,73 @@
-describe('Config Module', () => {
-  const ORIGINAL_ENV = process.env;
+import config from './config';
+
+describe('Configuration Loading', () => {
+  // Garder une copie des variables d'environnement originales
+  const originalEnv = process.env;
 
   beforeEach(() => {
-    // Réinitialise les mocks et process.env avant chaque test
-    jest.resetModules();
-    process.env = { ...ORIGINAL_ENV }; // Copie l'environnement original
-    delete process.env.REACT_APP_TWITCH_CHANNELS;
-    delete process.env.REACT_APP_TWITCH_REWARD_ID;
+    // Réinitialiser process.env pour isoler les tests
+    jest.resetModules(); // Réinitialise le cache des modules pour recharger config.js
+    process.env = { ...originalEnv }; // Restaurer les variables d'environnement
   });
 
   afterAll(() => {
-    // Restaure l'environnement original après tous les tests
-    process.env = ORIGINAL_ENV;
+    // Restaurer les variables d'environnement originales après tous les tests
+    process.env = originalEnv;
   });
 
-  test('should load default values when environment variables are not set', () => {
-    // Importe config APRÈS avoir potentiellement modifié process.env
-    const config = require('./config').default;
-
-    expect(config.twitch.channels).toEqual(['swaenlive', 'redswaen']);
-    expect(config.twitch.rewards.customTimer.id).toBe('');
-    expect(config.timer.defaultDuration).toBe(300);
-    expect(config.sounds.volume).toBe(0.5);
+  test('should load default channels if env var is not set', () => {
+    delete process.env.REACT_APP_TWITCH_CHANNELS;
+    // Recharger config après modification de process.env
+    const reloadedConfig = require('./config').default;
+    // Note: Default channels are removed from config.js, so it should be empty
+    // expect(reloadedConfig.twitch.channels).toEqual(['swaenlive', 'redswaen']);
+    expect(reloadedConfig.twitch.channels).toEqual([]); 
   });
 
-  test('should load channels from REACT_APP_TWITCH_CHANNELS environment variable', () => {
-    process.env.REACT_APP_TWITCH_CHANNELS = 'channel1,channel2,channel3';
-    const config = require('./config').default;
-
-    expect(config.twitch.channels).toEqual(['channel1', 'channel2', 'channel3']);
+  test('should load channels from env var', () => {
+    const testChannels = 'channel1,channel2';
+    process.env.REACT_APP_TWITCH_CHANNELS = testChannels;
+    const reloadedConfig = require('./config').default;
+    expect(reloadedConfig.twitch.channels).toEqual(['channel1', 'channel2']);
   });
 
-  test('should load reward ID from REACT_APP_TWITCH_REWARD_ID environment variable', () => {
-    const testRewardId = 'test-reward-uuid-12345';
-    process.env.REACT_APP_TWITCH_REWARD_ID = testRewardId;
-    const config = require('./config').default;
+  // --- Tests obsolètes supprimés ---
+  // test('should have an empty reward ID if env var is not set', () => {
+  //   delete process.env.REACT_APP_TWITCH_REWARD_ID;
+  //   const reloadedConfig = require('./config').default;
+  //   expect(reloadedConfig.twitch.rewards.customTimer.id).toBe('');
+  // });
+  // 
+  // test('should load reward ID from env var', () => {
+  //   const testRewardId = 'test-reward-123';
+  //   process.env.REACT_APP_TWITCH_REWARD_ID = testRewardId;
+  //   const reloadedConfig = require('./config').default;
+  //   expect(reloadedConfig.twitch.rewards.customTimer.id).toBe(testRewardId);
+  // });
+  // --- Fin des tests obsolètes ---
 
-    expect(config.twitch.rewards.customTimer.id).toBe(testRewardId);
+  test('should load default timer durations if env vars are not set', () => {
+    delete process.env.REACT_APP_TIMER_MIN_DURATION_SECONDS;
+    delete process.env.REACT_APP_TIMER_MAX_DURATION_SECONDS;
+    const reloadedConfig = require('./config').default;
+    expect(reloadedConfig.timer.minDuration).toBe(30); // Default min is now 30
+    expect(reloadedConfig.timer.maxDuration).toBe(3600);
   });
 
-  test('should have the correct structure', () => {
-    const config = require('./config').default;
-
-    expect(config).toHaveProperty('twitch');
-    expect(config.twitch).toHaveProperty('channels');
-    expect(config.twitch).toHaveProperty('rewards.customTimer.id');
-    expect(config.twitch).toHaveProperty('connection');
-    expect(config).toHaveProperty('timer');
-    expect(config.timer).toHaveProperty('defaultDuration');
-    expect(config.timer).toHaveProperty('maxDuration');
-    expect(config.timer).toHaveProperty('minDuration');
-    expect(config).toHaveProperty('sounds');
-    expect(config.sounds).toHaveProperty('volume');
-    expect(config.sounds).toHaveProperty('enabled');
+  test('should load timer durations from env vars', () => {
+    process.env.REACT_APP_TIMER_MIN_DURATION_SECONDS = '60';
+    process.env.REACT_APP_TIMER_MAX_DURATION_SECONDS = '1800';
+    const reloadedConfig = require('./config').default;
+    expect(reloadedConfig.timer.minDuration).toBe(60);
+    expect(reloadedConfig.timer.maxDuration).toBe(1800);
   });
 
-  test('should warn if REACT_APP_TWITCH_REWARD_ID is not set', () => {
-    // Espionne console.warn
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Importe le module config (qui exécute la validation)
-    require('./config');
-
-    // Vérifie que console.warn a été appelé
-    expect(warnSpy).toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('REACT_APP_TWITCH_REWARD_ID n\'est pas défini')
-    );
-
-    // Restaure le spy
-    warnSpy.mockRestore();
-  });
-
-   test('should not warn if REACT_APP_TWITCH_REWARD_ID is set', () => {
-    process.env.REACT_APP_TWITCH_REWARD_ID = 'some-id';
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    require('./config');
-
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    warnSpy.mockRestore();
+  test('should handle invalid timer duration env vars and use defaults', () => {
+    process.env.REACT_APP_TIMER_MIN_DURATION_SECONDS = 'abc';
+    process.env.REACT_APP_TIMER_MAX_DURATION_SECONDS = '-100';
+    const reloadedConfig = require('./config').default;
+    expect(reloadedConfig.timer.minDuration).toBe(30); // Default because abc is NaN
+    expect(reloadedConfig.timer.maxDuration).toBe(3600); // Default because -100 <= 0
   });
 
 }); 

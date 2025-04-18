@@ -7,64 +7,82 @@ import { getSelectedRewardId } from './TwitchAuth';
 // import {channels,  rewardsId } from './consts/variables';
 import * as tmi from 'tmi.js';
 
-var timerDuration = null; // Cette variable globale pourrait être gérée différemment (ex: état React dans App.js)
+// var timerDuration = null; // Avoid global variables if possible -> REMOVED as unused
 
-// Extracted message handling logic
-function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
-    if (self) return;
-
-    // Get the currently selected reward ID from localStorage
+// --- Helper: Process Reward Message ---
+function processRewardMessage(tags, message, currentConfig) {
     const selectedRewardId = getSelectedRewardId();
-    // console.log("Checking message against selected reward ID:", selectedRewardId); // Optional: Debug log
-
     let durationSeconds = null;
     let timerUpdateNeeded = false;
 
-    // Reward Check: Use the dynamically selected ID
-    // Check if a reward is selected AND if the message tag matches it
     if (selectedRewardId && tags["custom-reward-id"] === selectedRewardId) {
-        console.log(`[handleTwitchMessage] Received matching reward redemption: ${selectedRewardId}`);
         const cleanedMessage = cleanMessage(message);
         if (cleanedMessage != null) {
             durationSeconds = parseInt(cleanedMessage, 10) * 60;
-            console.log(`[handleTwitchMessage] Parsed duration: ${durationSeconds / 60} minutes`);
             timerUpdateNeeded = true;
         } else {
-            // Handle rewards that might not require user input? 
-            // Or log that the message format was wrong for the timer reward.
             console.warn("[handleTwitchMessage] Reward redeemed, but message did not contain a parseable number.");
-            // Maybe set a default duration? Or ignore? For now, ignore.
-        }
-    }
-    // Command Check (!timer or !timerCancel)
-    // Keep this logic if commands should still work independently
-    else if (message.toLowerCase().startsWith("!timer") && 
-             tags["username"] && 
-             currentConfig.twitch.channels.some(channel => channel.toLowerCase() === "#" + tags["username"].toLowerCase())) {
-        console.log(`[handleTwitchMessage] Received command: ${message}`);
-        if (message.toLowerCase() === "!timercancel") {
-            durationSeconds = null; // Explicitly set to null for cancellation
-            timerUpdateNeeded = true;
-        } else {
-            const cleanedMessage = cleanMessage(message);
-            if (cleanedMessage != null) {
-                durationSeconds = parseInt(cleanedMessage, 10) * 60;
-                 console.log(`[handleTwitchMessage] Parsed duration from command: ${durationSeconds / 60} minutes`);
-                timerUpdateNeeded = true;
-            }
         }
     }
 
-    // If a timer update is triggered, process and call onTimerSet
-    if (timerUpdateNeeded) {
-        if (durationSeconds !== null) {
+    return timerUpdateNeeded ? { durationSeconds, timerUpdateNeeded } : null;
+}
+
+// --- Helper: Process Command Message ---
+function processCommandMessage(tags, message, currentConfig) {
+    let durationSeconds = null;
+    let timerUpdateNeeded = false;
+
+    const commandPrefix = "!timer";
+    const cancelCommand = "!timercancel";
+    const lowerCaseMessage = message.toLowerCase();
+
+    // Check if the message starts with the command prefix and the user is authorized (channel owner)
+    if (lowerCaseMessage.startsWith(commandPrefix) && 
+        tags["username"] && 
+        currentConfig.twitch.channels.some(channel => channel.toLowerCase() === "#" + tags["username"].toLowerCase())) 
+    {
+        if (lowerCaseMessage === cancelCommand) {
+            durationSeconds = null; // Explicitly set to null for cancellation
+            timerUpdateNeeded = true;
+        } else {
+            // Extract potential duration from the command (e.g., "!timer 15")
+            const cleanedMessage = cleanMessage(message); // cleanMessage handles extracting the number part
+            if (cleanedMessage != null) {
+                durationSeconds = parseInt(cleanedMessage, 10) * 60;
+                timerUpdateNeeded = true;
+            }
+            // If command is just "!timer" without a number, ignore it (timerUpdateNeeded remains false)
+        }
+    }
+
+    return timerUpdateNeeded ? { durationSeconds, timerUpdateNeeded } : null;
+}
+
+// --- Main Message Handler (Refactored) ---
+function handleTwitchMessage(tags, message, self, onTimerSet, currentConfig) {
+    if (self) return;
+
+    let result = null;
+
+    // Try processing as a reward first
+    result = processRewardMessage(tags, message, currentConfig);
+
+    // If not processed as a reward, try processing as a command
+    if (!result) {
+        result = processCommandMessage(tags, message, currentConfig);
+    }
+
+    // If either process resulted in a timer update
+    if (result && result.timerUpdateNeeded) {
+        let finalDuration = result.durationSeconds;
+        if (finalDuration !== null) {
             // Apply min/max limits from config
             const min = currentConfig.timer.minDuration;
             const max = currentConfig.timer.maxDuration;
-            durationSeconds = Math.min(Math.max(durationSeconds, min), max);
-             console.log(`[handleTwitchMessage] Applying limits (${min}-${max}s). Final duration: ${durationSeconds}s`);
+            finalDuration = Math.min(Math.max(finalDuration, min), max);
         }
-        onTimerSet(durationSeconds);
+        onTimerSet(finalDuration); // Call the callback with the final duration
     }
 }
 
@@ -85,7 +103,7 @@ function cleanMessage(s) {
 
 // Updated React Component
 function ReadTwitchMessages({ onTimerSet }) {
-    const [isConnected, setIsConnected] = useState(false); // State remains for potential UI feedback
+    // const [isConnected, setIsConnected] = useState(false); // State remains for potential UI feedback -> REMOVED as unused
     const client = useMemo(() => new tmi.Client({
         // Utiliser les canaux depuis la configuration
         channels: config.twitch.channels,
@@ -97,13 +115,18 @@ function ReadTwitchMessages({ onTimerSet }) {
     useEffect(() => {
         let isMounted = true; // Flag to prevent operations after unmount
 
-        console.log("Attempting to connect Twitch client...");
+        // --- Removed log for attempting connection ---
+        // console.log("Attempting to connect Twitch client...");
         client.connect()
             .then(() => {
-                if (isMounted) setIsConnected(true);
-                console.log("Twitch client connected successfully.");
+                // if (isMounted) setIsConnected(true); // REMOVED as unused
+                if (isMounted) { // Keep the check for isMounted
+                    // --- Removed log for successful connection ---
+                    // console.log("Twitch client connected successfully.");
+                }
             })
             .catch(error => {
+                // Keep console.error for actual errors
                 console.error("Failed to connect Twitch client:", error);
                 // Optionally set an error state here if needed for UI feedback
             });
@@ -116,24 +139,30 @@ function ReadTwitchMessages({ onTimerSet }) {
 
         // Register the message handler
         client.on('message', messageHandler);
-        console.log("Twitch message listener attached.");
+        // --- Removed log for listener attached ---
+        // console.log("Twitch message listener attached.");
 
         // Cleanup function: runs on component unmount or before effect re-runs
         return () => {
             isMounted = false; // Mark as unmounted
-            console.log("Cleaning up Twitch client connection...");
+            // --- Removed log for cleaning up ---
+            // console.log("Cleaning up Twitch client connection...");
             // Remove the specific listener to prevent memory leaks
             client.removeListener('message', messageHandler);
-            console.log("Twitch message listener removed.");
+            // --- Removed log for listener removed ---
+            // console.log("Twitch message listener removed.");
 
             // Disconnect if the client is currently open
             if (client.readyState() === "OPEN") {
-                console.log("Disconnecting Twitch client...");
+                // --- Removed log for disconnecting ---
+                // console.log("Disconnecting Twitch client...");
                 client.disconnect()
-                    .then(() => console.log("Twitch client disconnected successfully."))
-                    .catch(error => console.error("Error disconnecting Twitch client:", error));
+                    // --- Removed log for successful disconnect ---
+                    // .then(() => console.log("Twitch client disconnected successfully."))
+                    .catch(error => console.error("Error disconnecting Twitch client:", error)); // Keep error log
             } else {
-                console.log(`Twitch client not disconnected (state: ${client.readyState()}).`);
+                // --- Removed log for not disconnecting ---
+                // console.log(`Twitch client not disconnected (state: ${client.readyState()}).`);
             }
         };
     }, [client, onTimerSet]); // Dependencies: Re-run effect if client instance or onTimerSet changes
@@ -142,4 +171,4 @@ function ReadTwitchMessages({ onTimerSet }) {
     return null;
 }
 
-export { ReadTwitchMessages, handleTwitchMessage, cleanMessage }; // Export new functions
+export { ReadTwitchMessages, handleTwitchMessage, cleanMessage }; // Keep this one

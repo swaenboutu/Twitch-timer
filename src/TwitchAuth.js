@@ -15,9 +15,9 @@ const BROADCASTER_ID = process.env.REACT_APP_TWITCH_BROADCASTER_ID;
 // const REWARD_ID_TO_FETCH = process.env.REACT_APP_TWITCH_REWARD_ID; // No longer fetching by ID
 // const REWARD_NAME_TO_FIND = process.env.REACT_APP_TWITCH_REWARD_NAME; // No longer searching by name
 
-// --- Add console logs to check environment variables ---
-console.log("TWITCH_CLIENT_ID:", TWITCH_CLIENT_ID);
-console.log("BROADCASTER_ID:", BROADCASTER_ID);
+// --- Removed console logs for env vars ---
+// console.log("TWITCH_CLIENT_ID:", TWITCH_CLIENT_ID);
+// console.log("BROADCASTER_ID:", BROADCASTER_ID);
 // console.log("REWARD_ID_TO_FETCH:", REWARD_ID_TO_FETCH); // No longer used
 // console.log("REWARD_NAME_TO_FIND:", REWARD_NAME_TO_FIND);
 
@@ -38,9 +38,8 @@ const LOCALSTORAGE_KEYS = {
  */
 export function TwitchLoginButton() {
     const handleLogin = () => {
-        // --- Add console log to check the final URL ---
-        console.log("Redirecting to Twitch Auth URL:", TWITCH_AUTH_URL);
-        // Clear previous selection when initiating login
+        // --- Removed console log for auth URL ---
+        // console.log("Redirecting to Twitch Auth URL:", TWITCH_AUTH_URL);
         localStorage.removeItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_ID);
         localStorage.removeItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_TITLE);
         window.location.href = TWITCH_AUTH_URL;
@@ -74,18 +73,21 @@ export function TwitchCallback() {
         const errorDesc = params.get('error_description');
 
         if (token) {
-            console.log("Twitch Access Token received.");
+            // --- Removed console log for token received ---
+            // console.log("Twitch Access Token received.");
             localStorage.setItem(LOCALSTORAGE_KEYS.TWITCH_ACCESS_TOKEN, token);
 
             // --- Call API to fetch ALL rewards --- 
             fetchAllCustomRewards(token, BROADCASTER_ID, TWITCH_CLIENT_ID)
                 .then(allRewardsData => {
                     if (isMounted) {
-                        console.log("Twitch API Response (All Rewards):", allRewardsData);
+                        // --- Removed verbose log for all rewards ---
+                        // console.log("Twitch API Response (All Rewards):", allRewardsData);
                         if (allRewardsData.data && allRewardsData.data.length > 0) {
                              // Filter for enabled rewards only, could be optional
                             const enabledRewards = allRewardsData.data.filter(r => r.is_enabled);
-                            console.log("Enabled rewards:", enabledRewards);
+                            // --- Removed log for enabled rewards ---
+                            // console.log("Enabled rewards:", enabledRewards);
                             setAllRewards(enabledRewards);
                         } else {
                             setError("No custom rewards found for this channel or API error.");
@@ -95,6 +97,7 @@ export function TwitchCallback() {
                 })
                 .catch(err => {
                     if (isMounted) {
+                        // Keep console.error for actual errors
                         console.error("Error fetching Twitch rewards:", err);
                         setError(err.message || "Failed to fetch reward info."); 
                         setIsLoading(false); 
@@ -102,13 +105,19 @@ export function TwitchCallback() {
                 });
 
         } else if (errorParam) {
-            console.error("Twitch OAuth Error:", errorParam, errorDesc);
-            setError(`Twitch Auth Error: ${errorDesc || errorParam}`);
-            setIsLoading(false); // Auth failed, stop loading
+            if (isMounted) {
+                // Keep console.error for actual errors
+                console.error("Twitch OAuth Error:", errorParam, errorDesc);
+                setError(`Twitch Auth Error: ${errorDesc || errorParam}`);
+                setIsLoading(false); // Auth failed, stop loading
+            }
         } else {
-            console.warn("Twitch callback accessed without token or error.");
-            setError("Invalid Twitch callback state.");
-            setIsLoading(false); // Invalid state, stop loading
+            if (isMounted) {
+                // Keep console.warn for unexpected states
+                console.warn("Twitch callback accessed without token or error."); 
+                setError("Invalid Twitch callback state.");
+                setIsLoading(false); // Invalid state, stop loading
+            }
         }
 
         return () => {
@@ -121,7 +130,8 @@ export function TwitchCallback() {
     // --- Handle Reward Selection ---
     const handleSelectReward = (reward) => {
         if (!reward) return;
-        console.log("Reward selected:", reward);
+        // --- Removed log for selected reward ---
+        // console.log("Reward selected:", reward);
         localStorage.setItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_ID, reward.id);
         localStorage.setItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_TITLE, reward.title);
         setSelectedId(reward.id); // Set state to confirm selection
@@ -183,7 +193,8 @@ export function clearStoredTwitchToken() {
     localStorage.removeItem(LOCALSTORAGE_KEYS.TWITCH_ACCESS_TOKEN);
     localStorage.removeItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_ID); // Clear selection on logout
     localStorage.removeItem(LOCALSTORAGE_KEYS.SELECTED_REWARD_TITLE);
-    console.log("Twitch token and selected reward cleared.");
+    // --- Removed log for token cleared ---
+    // console.log("Twitch token and selected reward cleared.");
 }
 
 // --- API Call Function ---
@@ -211,7 +222,8 @@ async function fetchAllCustomRewards(accessToken, broadcasterId, clientId) {
         'Client-Id': clientId,
     };
 
-    console.log(`Fetching ALL Twitch Rewards from API: ${apiUrl}`);
+    // --- Removed log for API fetch URL ---
+    // console.log(`Fetching ALL Twitch Rewards from API: ${apiUrl}`);
 
     const response = await fetch(apiUrl, { headers });
 

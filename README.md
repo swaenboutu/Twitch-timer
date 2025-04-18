@@ -10,11 +10,14 @@ Ce projet est open source. Si vous l'utilisez, n'hésitez pas à le signaler !
 
 ## Fonctionnalités Clés
 
-*   Minuteur personnalisable affiché via une source navigateur.
-*   Déclenchement via récompense de points de chaîne Twitch.
-*   Contrôle via commandes chat (`!timer XX`, `!timerCancel`).
-*   Configuration via un fichier JavaScript.
-*   Rafraîchissement automatique lors de l'activation de la scène (si configuré dans le logiciel de streaming).
+*   Minuteur personnalisable affiché seul via une source navigateur (`/timer`, destiné à OBS).
+*   Interface de configuration pour le streamer (`/config`).
+*   Authentification du streamer via Twitch pour la configuration (`/config`).
+*   Sélection de la récompense de points de chaîne via l'interface après connexion (`/config`).
+*   Déclenchement via la récompense de points de chaîne Twitch sélectionnée (visible sur `/timer`).
+*   Contrôle via commandes chat (`!timer XX`, `!timerCancel`, affecte `/timer`).
+*   Configuration de base via un fichier JavaScript (ex: Client ID).
+*   Rafraîchissement automatique lors de l'activation de la scène (si configuré dans le logiciel de streaming pour la source `/timer`).
 
 ## Prérequis
 
@@ -40,32 +43,40 @@ Ce projet est open source. Si vous l'utilisez, n'hésitez pas à le signaler !
 
 ## Configuration
 
-Avant de lancer ou de builder l'application, vous devez configurer les éléments suivants dans le fichier `src/variables.js` (ce fichier devra peut-être être créé s'il n'existe pas ou adapté s'il a un autre nom) :
+La configuration initiale se fait via le fichier `src/config.js` (ou `src/variables.js`, adaptez si nécessaire) :
 
-*   `channels`: Un tableau contenant les noms des chaînes Twitch sur lesquelles le minuteur doit écouter les commandes et récompenses.
+*   `channels`: Un tableau contenant le nom de la chaîne Twitch principale sur laquelle le minuteur fonctionnera.
     *   Exemple : `const channels = ['swaenlive'];`
-*   `rewardsId`: L'identifiant unique (UUID) de la récompense de points de chaîne personnalisée qui déclenche le minuteur.
-    *   Pour obtenir cet ID, vous pouvez utiliser l'API Twitch : [Get Custom Reward](https://dev.twitch.tv/docs/api/reference/#get-custom-reward)
+*   **(Optionnel)** `rewardsId`: L'identifiant d'une récompense peut être pré-configuré ici. Cependant, la fonctionnalité principale permet désormais au streamer de se connecter via Twitch et de sélectionner la récompense souhaitée directement depuis l'interface de l'application (accessible via l'URL de la source navigateur).
+    *   Pour obtenir un ID de récompense si besoin : [Get Custom Reward](https://dev.twitch.tv/docs/api/reference/#get-custom-reward)
     *   Exemple : `const rewardsId = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';`
-*   **(Optionnel)** Autres variables de configuration spécifiques à votre application (à documenter ici si elles existent).
+*   Autres variables de configuration spécifiques (ex: identifiants client Twitch pour l'authentification) peuvent être nécessaires. Consultez `config.js` ou la documentation technique.
+
+La configuration la plus importante (sélection de la récompense) se fait maintenant **après avoir lancé l'application et s'être connecté via Twitch** dans l'interface de configuration (`/config`).
 
 ## Utilisation
 
 ### Côté Streamer
 
-1.  **Intégration dans le logiciel de streaming (OBS, StreamElements, etc.) :**
-    *   Lancez l'application en mode développement (`npm start`) ou utilisez une version buildée (`npm run build`).
+1.  **Lancement et Configuration Initiale :**
+    *   Lancez l'application en mode développement (`npm start`) ou utilisez une version buildée (`npm run build` servie par un serveur web).
+    *   Ouvrez l'URL de configuration (`http://localhost:3000/config` par défaut) dans votre navigateur **personnel** (pas dans OBS).
+    *   Connectez-vous avec votre compte Twitch.
+    *   Sélectionnez la récompense de points de chaîne que vous souhaitez utiliser pour déclencher le minuteur.
+2.  **Intégration dans le logiciel de streaming (OBS, StreamElements, etc.) :**
     *   Ajoutez une source "Source Navigateur" (`Browser Source`).
-    *   Entrez l'URL locale (`http://localhost:3000` par défaut si `npm start`) ou le chemin vers le fichier `index.html` du dossier `build/`.
-    *   **Important :** Cochez l'option "Rafraîchir le navigateur quand la scène devient active" (`Refresh browser when scene becomes active`).
-2.  **Contrôle via Chat :**
-    *   Pour démarrer/modifier le minuteur : `!timer XX` (où XX est le nombre de minutes).
+    *   Entrez l'URL du minuteur (`http://localhost:3000/timer` par défaut si `npm start`). Cette URL n'affiche **que** le minuteur.
+    *   Ajustez la taille et la position de la source dans votre scène.
+    *   **Important :** Cochez l'option "Rafraîchir le navigateur quand la scène devient active" (`Refresh browser when scene becomes active`). Cela s'appliquera à la source `/timer`.
+3.  **Contrôle via Chat :**
+    *   Les commandes affecteront le minuteur visible dans OBS via la source `/timer`.
+    *   Pour démarrer/modifier le minuteur : `!timerXX` (où XX est le nombre de minutes).
     *   Pour arrêter/cacher le minuteur : `!timerCancel`.
-    *   Note : Masquer puis réafficher la source navigateur réinitialise également le minuteur grâce à l'option de rafraîchissement.
+    *   Note : Masquer puis réafficher la source navigateur (`/timer`) réinitialise également le minuteur grâce à l'option de rafraîchissement.
 
 ### Côté Viewer
 
-*   Utilisez la récompense de points de chaîne configurée (voir `rewardsId` dans la configuration) en ajoutant le nombre de minutes souhaité comme message/prompt.
+*   Utilisez la récompense de points de chaîne sélectionnée par le streamer en ajoutant le nombre de minutes souhaité comme message/prompt.
 
 ## Scripts Disponibles
 
@@ -73,15 +84,23 @@ Dans le dossier du projet, vous pouvez exécuter :
 
 ### `npm start` ou `yarn start`
 
-Lance l'application en mode développement. Ouvrez [http://localhost:3000](http://localhost:3000) pour la voir dans le navigateur. La page se recharge automatiquement lors des modifications.
+Lance l'application en mode développement.
+Ouvrez [`http://localhost:3000/timer`](http://localhost:3000/timer) pour voir le minuteur seul (pour OBS).
+Ouvrez [`http://localhost:3000/config`](http://localhost:3000/config) pour configurer l'application (navigateur personnel).
+La page se recharge automatiquement lors des modifications.
 
 ### `npm run build` ou `yarn build`
 
-Crée une version optimisée de l'application pour la production dans le dossier `build/`. Ces fichiers statiques peuvent être servis par un serveur web ou utilisés directement comme chemin de fichier dans la source navigateur de votre logiciel de streaming.
+Crée une version optimisée de l'application pour la production dans le dossier `build/`.
+Pour utiliser un build avec les routes `/timer` et `/config`, vous aurez besoin d'un **serveur statique capable de gérer le routage côté client** (par exemple, en redirigeant toutes les requêtes inconnues vers `index.html`). L'utilisation directe du fichier `build/index.html` comme source navigateur ne fonctionnera que pour la route par défaut et empêchera l'accès à `/config` ou le fonctionnement correct du rafraîchissement de `/timer`.
 
 ### `npm test` ou `yarn test`
 
 Lance la suite de tests avec Jest en mode interactif. (Des tests seront ajoutés prochainement dans le cadre de ce plan).
+
+## Documentation
+
+Pour une vue détaillée de l'architecture technique, de la structure du projet et du flux de fonctionnement, veuillez consulter la [Documentation Technique](TECHNICAL_DOCUMENTATION.md).
 
 ## Contribuer
 

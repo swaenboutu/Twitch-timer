@@ -1,24 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import Timer from './timer';
+import { BrowserRouter as Router, Route, Routes, Link, Navigate, useLocation } from 'react-router-dom';
 import { ReadTwitchMessages } from './twitchConnection';
 import { TwitchLoginButton, TwitchCallback, getStoredTwitchToken, clearStoredTwitchToken } from './TwitchAuth';
 import useSound from 'use-sound';
 import endSound from './assets/energy-1-107099.mp3';
+import TimerPage from './pages/TimerPage';
+import ConfigPage from './pages/ConfigPage';
 
 export default function App() {
+    const [isTwitchLoggedIn, setIsTwitchLoggedIn] = useState(!!getStoredTwitchToken());
     const [timer, setTimer] = useState(null);
     const [playSound] = useSound(endSound);
-    const [isTwitchLoggedIn, setIsTwitchLoggedIn] = useState(!!getStoredTwitchToken());
-
-    function timerEnd(timerDuration) {
-        playSound();
-    }
+    const location = useLocation();
 
     const handleTwitchLogout = () => {
         clearStoredTwitchToken();
         setIsTwitchLoggedIn(false);
     };
+
+    function handleTimerEnd() {
+        playSound();
+        setTimer(null);
+    }
 
     useEffect(() => {
         const checkToken = () => setIsTwitchLoggedIn(!!getStoredTwitchToken());
@@ -26,30 +29,36 @@ export default function App() {
         return () => window.removeEventListener('storage', checkToken);
     }, []);
 
+    const isTimerRoute = location.pathname === '/timer';
+
     return (
         <div>
-            <h1>Twitch Timer App</h1>
+            <ReadTwitchMessages onTimerSet={setTimer} />
 
-            <nav>
-                {!isTwitchLoggedIn ? (
-                    <TwitchLoginButton />
-                ) : (
-                    <div>
-                        <span>Connected to Twitch!</span>
-                        <button onClick={handleTwitchLogout} style={{ marginLeft: '10px' }}>Logout</button>
-                        <Link to="/" style={{ marginLeft: '10px' }}>Home</Link>
-                    </div>
-                )}
-            </nav>
-            <hr />
+            {!isTimerRoute && (
+                <>
+                    <h1>Twitch Timer App</h1>
+                    <nav>
+                        <Link to="/timer" style={{ marginRight: '10px' }}>Timer</Link>
+                        <Link to="/config">Config</Link>
+                        {isTwitchLoggedIn && (
+                            <button onClick={handleTwitchLogout} style={{ marginLeft: '10px' }}>Logout</button>
+                        )}
+                    </nav>
+                    <hr />
+                </>
+            )}
 
             <Routes>
-                <Route path="/" element={
-                    <>
-                        <ReadTwitchMessages onTimerSet={setTimer} />
-                        {timer && <Timer maxDuration={timer} onEnd={timerEnd} />}
-                        {!timer && <p>Waiting for timer command or reward...</p>}
-                    </>
+                <Route path="/" element={<Navigate replace to="/timer" />} />
+
+                <Route path="/timer" element={<TimerPage timerDuration={timer} onTimerEnd={handleTimerEnd} />} />
+
+                <Route path="/config" element={
+                    <ConfigPage
+                        isTwitchLoggedIn={isTwitchLoggedIn}
+                        handleTwitchLogout={handleTwitchLogout}
+                    />
                 } />
 
                 <Route path="/twitch/callback" element={<TwitchCallbackWrapper setIsTwitchLoggedIn={setIsTwitchLoggedIn} />} />
@@ -65,5 +74,10 @@ function TwitchCallbackWrapper({ setIsTwitchLoggedIn }) {
         }
     }, [setIsTwitchLoggedIn]);
 
-    return <TwitchCallback />;
+    return (
+        <>
+            <TwitchCallback />
+            {getStoredTwitchToken() && <Navigate replace to="/config" />}
+        </>
+    );
 }

@@ -1,82 +1,92 @@
-# Twitch-timer
+# Twitch Timer
 
-This project is a timer created for my Twitch channel [http://twitch.tv/swaenlive](http://twitch.tv/swaenlive). The goal is for viewers to be able to display a timer on the screen.
-This project is openSource and free to use, if you're doing so please notify me so I can brag :D
+## Description
 
-# How it works
+Ce projet fournit un minuteur configurable destiné à être utilisé comme source navigateur dans des logiciels de streaming (OBS, StreamElements, etc.). Il est initialement conçu pour la chaîne Twitch [http://twitch.tv/swaenlive](http://twitch.tv/swaenlive).
 
-## viewer side
+L'objectif principal est de permettre aux viewers ou au streamer de déclencher un minuteur visible à l'écran via des récompenses de points de chaîne ou des commandes chat.
 
-On the viewer side, the only thing to do is to use a custom reward and add the number of minutes to set for the duration of the time
+Ce projet est open source. Si vous l'utilisez, n'hésitez pas à le signaler !
 
-## streamer side
+## Fonctionnalités Clés
 
-On the streamer side, you should include a **compiled version** of this project as a "*Brower source*" in your streaming software (such as OBS or streamElements). 
+*   Minuteur personnalisable affiché via une source navigateur.
+*   Déclenchement via récompense de points de chaîne Twitch.
+*   Contrôle via commandes chat (`!timer XX`, `!timerCancel`).
+*   Configuration via un fichier JavaScript.
+*   Rafraîchissement automatique lors de l'activation de la scène (si configuré dans le logiciel de streaming).
 
-*Note*: don't forget to click "Refresh browser when scene becomes active".
+## Prérequis
 
-As streamer, you can use a chat message to display `!timer XX` and hide the timer `!timerCancel`.
+*   Node.js (version recommandée : 16 ou supérieure)
+*   npm ou yarn
 
-*Note* : In order to hide reset the timer, you can also hide and display again the browser source as it refresh everytime the scene become active.
+## Installation
 
-But befor you do so, here are the few things you have to set :
-* The `channels` in `varibles.js` file must contains the name of the Twitch channels you want to use this project on
-* The `rewardsId` in `variables.js` is the UUID of the custom reward you've created for the timer (here is the way to get it : [https://dev.twitch.tv/docs/api/reference/#get-custom-reward](https://dev.twitch.tv/docs/api/reference/#get-custom-reward))
+1.  Clonez le dépôt :
+    ```bash
+    git clone <url-du-repo>
+    ```
+2.  Naviguez dans le dossier du projet :
+    ```bash
+    cd Twitch-timer
+    ```
+3.  Installez les dépendances :
+    ```bash
+    npm install
+    # ou
+    # yarn install
+    ```
 
+## Configuration
 
-# Getting Started with Create React App
+Avant de lancer ou de builder l'application, vous devez configurer les éléments suivants dans le fichier `src/variables.js` (ce fichier devra peut-être être créé s'il n'existe pas ou adapté s'il a un autre nom) :
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+*   `channels`: Un tableau contenant les noms des chaînes Twitch sur lesquelles le minuteur doit écouter les commandes et récompenses.
+    *   Exemple : `const channels = ['swaenlive'];`
+*   `rewardsId`: L'identifiant unique (UUID) de la récompense de points de chaîne personnalisée qui déclenche le minuteur.
+    *   Pour obtenir cet ID, vous pouvez utiliser l'API Twitch : [Get Custom Reward](https://dev.twitch.tv/docs/api/reference/#get-custom-reward)
+    *   Exemple : `const rewardsId = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';`
+*   **(Optionnel)** Autres variables de configuration spécifiques à votre application (à documenter ici si elles existent).
 
-## Available Scripts
+## Utilisation
 
-In the project directory, you can run:
+### Côté Streamer
 
-### `npm start`
+1.  **Intégration dans le logiciel de streaming (OBS, StreamElements, etc.) :**
+    *   Lancez l'application en mode développement (`npm start`) ou utilisez une version buildée (`npm run build`).
+    *   Ajoutez une source "Source Navigateur" (`Browser Source`).
+    *   Entrez l'URL locale (`http://localhost:3000` par défaut si `npm start`) ou le chemin vers le fichier `index.html` du dossier `build/`.
+    *   **Important :** Cochez l'option "Rafraîchir le navigateur quand la scène devient active" (`Refresh browser when scene becomes active`).
+2.  **Contrôle via Chat :**
+    *   Pour démarrer/modifier le minuteur : `!timer XX` (où XX est le nombre de minutes).
+    *   Pour arrêter/cacher le minuteur : `!timerCancel`.
+    *   Note : Masquer puis réafficher la source navigateur réinitialise également le minuteur grâce à l'option de rafraîchissement.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Côté Viewer
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+*   Utilisez la récompense de points de chaîne configurée (voir `rewardsId` dans la configuration) en ajoutant le nombre de minutes souhaité comme message/prompt.
 
-### `npm run build`
+## Scripts Disponibles
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Dans le dossier du projet, vous pouvez exécuter :
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### `npm start` ou `yarn start`
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Lance l'application en mode développement. Ouvrez [http://localhost:3000](http://localhost:3000) pour la voir dans le navigateur. La page se recharge automatiquement lors des modifications.
 
+### `npm run build` ou `yarn build`
 
-## Learn More
+Crée une version optimisée de l'application pour la production dans le dossier `build/`. Ces fichiers statiques peuvent être servis par un serveur web ou utilisés directement comme chemin de fichier dans la source navigateur de votre logiciel de streaming.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### `npm test` ou `yarn test`
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Lance la suite de tests avec Jest en mode interactif. (Des tests seront ajoutés prochainement dans le cadre de ce plan).
 
-### Code Splitting
+## Contribuer
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+(Section à ajouter si besoin, avec des directives sur le style de code, les PRs, etc.)
 
-### Analyzing the Bundle Size
+## Licence
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Ce projet est sous licence [MIT](LICENSE).
